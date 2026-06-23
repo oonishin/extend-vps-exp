@@ -41,10 +41,12 @@ try {
     await page.waitForNavigation({ waitUntil: 'networkidle2' })
     // ログイン後にモーダルが表示される場合は閉じる
     await closeModalIfPresent(page)
-    await page.locator('a[href^="/xapanel/xvps/server/detail?id="]').click()
-    // 詳細ページでもモーダルが表示される場合があるため閉じる
+    // 詳細リンクのURLから無料VPS継続ページを組み立てて直接遷移する
+    // （UI変更で「更新する」ボタンの位置が変わり、画面操作では遷移できないため）
+    const detailHref = await page.$eval('a[href^="/xapanel/xvps/server/detail?id="]', a => a.href)
+    await page.goto(detailHref.replace('detail?id', 'freevps/extend/index?id_vps'), { waitUntil: 'networkidle2' })
+    // 継続ページでもモーダルが表示される場合があるため閉じる
     await closeModalIfPresent(page)
-    await page.locator('text=更新する').click()
     await page.locator('text=引き続き無料VPSの利用を継続する').click()
     await page.waitForNavigation({ waitUntil: 'networkidle2' })
     const body = await page.$eval('img[src^="data:"]', img => img.src)
