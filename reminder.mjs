@@ -9,6 +9,14 @@ if (process.env.PROXY_SERVER) {
     args.push(`--proxy-server=${proxy_url}`.replace(/\/$/, ''))
 }
 
+// 画面上にモーダルが表示されていれば閉じる（出なければ何もしない）
+async function closeModalIfPresent(page) {
+    const modalClose = await page.waitForSelector('button.modal__close', { timeout: 5000 }).catch(() => null)
+    if (modalClose) {
+        await modalClose.click()
+    }
+}
+
 const browser = await puppeteer.launch({
     defaultViewport: { width: 1080, height: 1024 },
     args,
@@ -32,10 +40,7 @@ try {
     await page.locator('text=ログインする').click()
     await page.waitForNavigation({ waitUntil: 'networkidle2' })
     // ログイン後にモーダルが表示される場合は閉じる
-    const modalClose = await page.waitForSelector('button.modal__close', { timeout: 5000 }).catch(() => null)
-    if (modalClose) {
-        await modalClose.click()
-    }
+    await closeModalIfPresent(page)
     const expireDate = await page.$eval('tr:has(.freeServerIco) .contract__term', p => p.textContent)
     const tomorrow = new Date(Date.now() + 86400000).toLocaleDateString('sv', { timeZone: 'Asia/Tokyo' })
     console.log('expireDate', expireDate, 'tomorrow', tomorrow, expireDate === tomorrow)
