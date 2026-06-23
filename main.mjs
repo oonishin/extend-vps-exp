@@ -5,7 +5,7 @@ import { setTimeout } from 'node:timers/promises'
 // 自動化シグナル(navigator.webdriver 等)を隠し、Cloudflare Turnstile の検知を緩和する
 puppeteer.use(StealthPlugin())
 
-const args = ['--no-sandbox', '--disable-setuid-sandbox']
+const args = ['--no-sandbox', '--disable-setuid-sandbox', '--disable-blink-features=AutomationControlled']
 if (process.env.PROXY_SERVER) {
     const proxy_url = new URL(process.env.PROXY_SERVER)
     proxy_url.username = ''
@@ -22,6 +22,8 @@ async function closeModalIfPresent(page) {
 }
 
 const browser = await puppeteer.launch({
+    // ヘッドフルで起動する（ヘッドレスはTurnstileに検知されやすいため、CIではxvfb上で実行する）
+    headless: false,
     defaultViewport: { width: 1080, height: 1024 },
     args,
 })
