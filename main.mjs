@@ -53,13 +53,19 @@ try {
     const code = await fetch('https://captcha-120546510085.asia-northeast1.run.app', { method: 'POST', body }).then(r => r.text())
     await page.locator('[placeholder="上の画像の数字を入力"]').fill(code)
     // Cloudflare Turnstile: チェックボックスをクリックし、トークンが生成されるまで待つ
-    const turnstile = await page.waitForSelector('.cf-turnstile', { timeout: 10000 }).catch(() => null)
+    // ウィジェットのiframe要素そのものを狙い、ビューに入れ・マウスを動かしてからクリックする
+    const turnstile = await page.waitForSelector('iframe[src*="challenges.cloudflare.com"]', { timeout: 15000 }).catch(() => null)
     if (turnstile) {
-        await setTimeout(2000) // ウィジェット内のiframe描画を待つ
+        await turnstile.scrollIntoView()
+        await setTimeout(3000) // ウィジェット内のチェックボックス描画を待つ
         const box = await turnstile.boundingBox()
         if (box) {
             // チェックボックスはウィジェット左側・縦中央付近にある
-            await page.mouse.click(box.x + 30, box.y + box.height / 2)
+            const x = box.x + 30
+            const y = box.y + box.height / 2
+            await page.mouse.move(x, y, { steps: 10 }) // 人間らしいマウス移動
+            await setTimeout(500)
+            await page.mouse.click(x, y)
         }
         // cf-turnstile-response にトークンがセットされるまで待つ（生成されない場合もそのまま進む）
         await page.waitForFunction(
