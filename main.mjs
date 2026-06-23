@@ -52,6 +52,21 @@ try {
     const body = await page.$eval('img[src^="data:"]', img => img.src)
     const code = await fetch('https://captcha-120546510085.asia-northeast1.run.app', { method: 'POST', body }).then(r => r.text())
     await page.locator('[placeholder="上の画像の数字を入力"]').fill(code)
+    // Cloudflare Turnstile: チェックボックスをクリックし、トークンが生成されるまで待つ
+    const turnstile = await page.waitForSelector('.cf-turnstile', { timeout: 10000 }).catch(() => null)
+    if (turnstile) {
+        await setTimeout(2000) // ウィジェット内のiframe描画を待つ
+        const box = await turnstile.boundingBox()
+        if (box) {
+            // チェックボックスはウィジェット左側・縦中央付近にある
+            await page.mouse.click(box.x + 30, box.y + box.height / 2)
+        }
+        // cf-turnstile-response にトークンがセットされるまで待つ（生成されない場合もそのまま進む）
+        await page.waitForFunction(
+            () => document.querySelector('[name="cf-turnstile-response"]')?.value,
+            { timeout: 30000 }
+        ).catch(() => null)
+    }
     await page.locator('text=無料VPSの利用を継続する').click()
 } catch (e) {
     console.error(e)
