@@ -57,20 +57,34 @@ try {
     const code = await fetch('https://captcha-120546510085.asia-northeast1.run.app', { method: 'POST', body }).then(r => r.text())
     await page.locator('[placeholder="上の画像の数字を入力"]').fill(code)
     // Cloudflare Turnstile: チェックボックスをクリックし、トークンが生成されるまで待つ
-    // ウィジェットのiframe要素そのものを狙い、ビューに入れ・マウスを動かしてからクリックする
     const turnstile = await page.waitForSelector('iframe[src*="challenges.cloudflare.com"]', { timeout: 15000 }).catch(() => null)
     if (turnstile) {
         await turnstile.scrollIntoView()
         await setTimeout(3000) // ウィジェット内のチェックボックス描画を待つ
-        const box = await turnstile.boundingBox()
-        if (box) {
-            // チェックボックスはウィジェット左側・縦中央付近にある
-            const x = box.x + 30
-            const y = box.y + box.height / 2
-            await page.mouse.move(x, y, { steps: 10 }) // 人間らしいマウス移動
-            await setTimeout(500)
-            await page.mouse.click(x, y)
+
+        // まずTurnstileのiframe内のチェックボックス要素を直接クリックする（座標推測を避ける）
+        let clicked = false
+        const cfFrame = page.frames().find(f => f.url().includes('challenges.cloudflare.com'))
+        if (cfFrame) {
+            const checkbox = await cfFrame.waitForSelector('input[type="checkbox"]', { timeout: 5000 }).catch(() => null)
+            if (checkbox) {
+                await checkbox.click()
+                clicked = true
+            }
         }
+
+        // 要素が取得できない場合は座標でクリック（チェックボックスは左側・縦中央付近）
+        if (!clicked) {
+            const box = await turnstile.boundingBox()
+            if (box) {
+                const x = box.x + 22
+                const y = box.y + box.height / 2
+                await page.mouse.move(x, y, { steps: 10 }) // 人間らしいマウス移動
+                await setTimeout(500)
+                await page.mouse.click(x, y)
+            }
+        }
+
         // cf-turnstile-response にトークンがセットされるまで待つ（生成されない場合もそのまま進む）
         await page.waitForFunction(
             () => document.querySelector('[name="cf-turnstile-response"]')?.value,
