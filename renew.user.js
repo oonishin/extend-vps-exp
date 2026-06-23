@@ -253,15 +253,17 @@ async function imageToCode(img) {
      * 关闭可能出现的模态框（登录后等）
      * 模态框可能在页面渲染后稍有延迟才出现，因此在一段时间内持续检测。
      */
-    function closeModalIfPresent(duration = 5000, interval = 300) {
+    function closeModalIfPresent(duration = 10000, interval = 300) {
         const deadline = Date.now() + duration;
         const timer = setInterval(() => {
-            const closeButton = document.querySelector('button.modal__close');
+            // 优先匹配 button.modal__close，找不到时退而匹配任意 .modal__close 元素
+            const closeButton = document.querySelector('button.modal__close, .modal__close');
             if (closeButton) {
-                console.log(`${LOG_PREFIX} 检测到模态框关闭按钮，正在点击...`);
+                console.log(`${LOG_PREFIX} 检测到模态框关闭按钮，正在点击...`, closeButton);
                 closeButton.click();
                 clearInterval(timer);
             } else if (Date.now() >= deadline) {
+                console.log(`${LOG_PREFIX} 在 ${duration}ms 内未检测到模态框关闭按钮。`);
                 clearInterval(timer);
             }
         }, interval);
@@ -273,9 +275,6 @@ async function imageToCode(img) {
     function handleVPSDashboard() {
         console.log(`${LOG_PREFIX} 当前在VPS管理主页。`);
         updateStatusElement("正在检查续期状态...");
-
-        // 登录后画面上若存在模态框关闭按钮则点击关闭
-        closeModalIfPresent();
 
         try {
             // 计算明天的日期，格式为 yyyy-mm-dd (瑞典时区格式更稳定)
@@ -480,6 +479,9 @@ async function imageToCode(img) {
         isRunning = true;
 
         const path = window.location.pathname;
+
+        // 登录后などに画面上にモーダルが出る場合、关闭按钮があればクリックする（全ページ共通）
+        closeModalIfPresent();
 
         if (path.startsWith('/xapanel/login/xvps')) {
             handleLogin();
