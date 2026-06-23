@@ -250,11 +250,32 @@ async function imageToCode(img) {
     }
 
     /**
+     * 关闭可能出现的模态框（登录后等）
+     * 模态框可能在页面渲染后稍有延迟才出现，因此在一段时间内持续检测。
+     */
+    function closeModalIfPresent(duration = 5000, interval = 300) {
+        const deadline = Date.now() + duration;
+        const timer = setInterval(() => {
+            const closeButton = document.querySelector('button.modal__close');
+            if (closeButton) {
+                console.log(`${LOG_PREFIX} 检测到模态框关闭按钮，正在点击...`);
+                closeButton.click();
+                clearInterval(timer);
+            } else if (Date.now() >= deadline) {
+                clearInterval(timer);
+            }
+        }, interval);
+    }
+
+    /**
      * VPS管理主页逻辑：检查到期时间和跳转
      */
     function handleVPSDashboard() {
         console.log(`${LOG_PREFIX} 当前在VPS管理主页。`);
         updateStatusElement("正在检查续期状态...");
+
+        // 登录后画面上若存在模态框关闭按钮则点击关闭
+        closeModalIfPresent();
 
         try {
             // 计算明天的日期，格式为 yyyy-mm-dd (瑞典时区格式更稳定)
