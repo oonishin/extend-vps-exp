@@ -31,6 +31,11 @@ try {
     await page.locator('#user_password').fill(process.env.PASSWORD)
     await page.locator('text=ログインする').click()
     await page.waitForNavigation({ waitUntil: 'networkidle2' })
+    // ログイン後にモーダルが表示される場合は閉じる
+    const modalClose = await page.waitForSelector('button.modal__close', { timeout: 5000 }).catch(() => null)
+    if (modalClose) {
+        await modalClose.click()
+    }
     await page.locator('a[href^="/xapanel/xvps/server/detail?id="]').click()
     await page.locator('text=更新する').click()
     await page.locator('text=引き続き無料VPSの利用を継続する').click()
